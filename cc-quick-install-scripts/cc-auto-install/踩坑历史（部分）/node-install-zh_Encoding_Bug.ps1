@@ -1,4 +1,4 @@
-# Node.js 自动安装脚本 for Windows 10
+﻿# Node.js 自动安装脚本 for Windows 10
 # 需要以管理员权限运行
 
 # 颜色函数
