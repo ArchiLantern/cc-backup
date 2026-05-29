@@ -18,30 +18,45 @@
 
 ## 🚀 快速开始
 
-### 脚本一：`Setup-ClaudeCode.ps1`
+整个工具箱包括：
+
+1. 一键完成 CLI 版本锁定与遥测禁用？—— 请用 `Setup-Old-CC-by-Admin.bat` **右键-管理员运行**
+	- 自动降级到 **v2.1.153**，并锁定版本，防止再次被静默更新。
+	- 自动修改 **settings.json**、添加环境变量，一步到位禁用遥测。
+	- 支持智能检查——如果已经是目标版本，就不会重复安装。
+2. `Convert-ToUTF8BOM.ps1` 可以一键批量为所有脚本添加 UTF-8 with BOM，从根源上解决 Windows 下脚本的中文乱码问题。
+3. **第一次用安装CC？想一键安装和设置？**—— 请用 `cc-install-by-Admin.bat` 右键-管理员运行！
+4. **node 版本不对？**—— 请用 `node-install-by-Admin.bat` 右键-管理员运行！
+5. **npm install 太慢？** —— 试试 换国内镜像源 `npm-mirror-switcher-by-Admin.bat` 右键-管理员运行！
+
+
+
+注意⚠️：ps1脚本不支持右键管理员快速运行，但 bat脚本支持。
+
+
+
+**手动处理 VSCode 插件**
+
+CLI 降级完成后，如果你在使用 VSCode 插件，还需要**手动处理**：在 VSCode 扩展面板中找到 `Claude Code` 插件，点击齿轮图标选择"安装另一版本..."，并选择 `2.1.153`。若列表中未显示，则需先卸载，再手动下载 `.vsix` 文件进行安装[reference:7]。
+
+
+
+#### 脚本一：`Setup-Old-ClaudeCode.ps1 `
+
 **功能**：一键完成 CLI 版本锁定与遥测禁用。它会自动检查当前版本，如果不是 `2.1.153`，则执行降级；同时它会自动修改 `~/.claude/settings.json` 来禁用自动更新，并设置环境变量以关闭遥测。
 
 **使用方法**：
-1.  **用管理员身份运行脚本**
-    由于脚本会修改系统环境变量，因此需要右键点击 `Setup-Old-CC-by-admin.bat`，选择"以管理员身份运行"。
 
-2.  **脚本会自动完成以下操作**
-    - 修改 `~/.claude/settings.json` 锁定 CLI 版本，防止自动升级[reference:6]。
-    - 设置系统环境变量，禁用遥测。
-    - 检查当前版本，如果不是 `2.1.153`，则自动执行 `npm uninstall` 与 `npm install` 完成降级。
+1. **用管理员身份运行脚本** 由于脚本会修改系统环境变量，因此需要右键点击 `Setup-Old-CC-by-admin.bat`，选择"以管理员身份运行"。
+2. **脚本会自动完成以下操作**
+   - 修改 `~/.claude/settings.json` 锁定 CLI 版本，防止自动升级[reference:6]。
+   - 设置系统环境变量，禁用遥测。
+   - 检查当前版本，如果不是 `2.1.153`，则自动执行 `npm uninstall` 与 `npm install` 完成降级。
+3. **手动处理 VSCode 插件** CLI 降级完成后，如果你在使用 VSCode 插件，还需要**手动处理**：在 VSCode 扩展面板中找到 `Claude Code` 插件，点击齿轮图标选择"安装另一版本..."，并选择 `2.1.153`。若列表中未显示，则需先卸载，再手动下载 `.vsix` 文件进行安装[reference:7]。
 
-3.  **手动处理 VSCode 插件**
-    CLI 降级完成后，如果你在使用 VSCode 插件，还需要**手动处理**：在 VSCode 扩展面板中找到 `Claude Code` 插件，点击齿轮图标选择"安装另一版本..."，并选择 `2.1.153`。若列表中未显示，则需先卸载，再手动下载 `.vsix` 文件进行安装[reference:7]。
 
-### 脚本二：`Convert-ToUTF8BOM.ps1`
-**功能**：批量为 `.bat`、`.cmd`、`.ps1` 等脚本文件添加 UTF-8 with BOM 编码，从根源上解决 Windows 控制台的中文乱码问题。
 
-**注意⚠️**：该脚本会 遍历当前目录及所有子目录下的 `.bat`、`.cmd` 和 `.ps1` 文件，并为不包含 BOM 的文件添加 UTF-8 with BOM 编码。请确保在运行前备份重要文件，以防止意外修改。
 
-**使用方法**：
-1.  将 `Convert-ToUTF8BOM.ps1` 放在你的脚本目录中。
-2.  右键点击该文件，选择"使用 PowerShell 运行"。
-3.  脚本会自动处理当前目录及所有子目录下的 `.bat`、`.cmd` 和 `.ps1` 文件，并跳过已包含 BOM 的文件。
 
 
 ## 🔧 配置文件详解
@@ -66,6 +81,8 @@ DISABLE_ERROR_REPORTING = "1"
 ```
 设置后，Claude Code 将不再向 Datadog、BigQuery 等通道上报数据。
 
+
+
 ## ⚠️ 注意事项
 
 - **关闭遥测存在性能代价**：Anthropic 官方将 1 小时 Prompt Cache 视为实验性功能，关闭遥测会导致 Prompt Cache TTL 从 1 小时降至默认的 5 分钟，这意味着长对话场景下的 Token 消耗和延迟可能会显著增加。
@@ -73,6 +90,6 @@ DISABLE_ERROR_REPORTING = "1"
 - **VS Code 插件需手动降级**：CLI 降级后，VSCode 插件通常仍为最新版。为解决插件报错问题，须在插件设置中额外手动安装 `2.1.153` 版本。
 - **管理员权限**：设置系统环境变量和修改 `settings.json` 均需要管理员权限。  
 
---- 
+---
 Auto-Gen-By: DeepSeek-v4-flash
 
