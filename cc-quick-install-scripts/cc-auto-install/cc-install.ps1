@@ -327,17 +327,27 @@ if ([string]::IsNullOrWhiteSpace($existingApiKey)) {
 
 $apiKey = $existingApiKey
 
-# 设置官方推荐的环境变量（DeepSeek Claude Code）
+# 设置官方推荐的环境变量（DeepSeek Claude Code）+ 个人习惯调整
 # https://api-docs.deepseek.com/zh-cn/guides/agent_integrations/claude_code
 $envSettings = @{
     "ANTHROPIC_BASE_URL"               = "https://api.deepseek.com/anthropic"
-    "ANTHROPIC_MODEL"                  = "deepseek-v4-pro[1m]"
+    # "ANTHROPIC_MODEL"                  = "deepseek-v4-pro[1m]" 
+    # "主模型"不设置，否则每次对话都会默认使用它。在CC用/model切换模型，自动作为默认模型，更符号预期。
+    # 注：加上 [1m] 后缀，告诉CC该模型支持1m上下文窗口，这样就不会错误地识别和计算上下文容量。且据说可以开启DS的某些性能优化。
     "ANTHROPIC_DEFAULT_OPUS_MODEL"     = "deepseek-v4-pro[1m]"
     "ANTHROPIC_DEFAULT_SONNET_MODEL"   = "deepseek-v4-pro[1m]"
-    "ANTHROPIC_DEFAULT_HAIKU_MODEL"    = "deepseek-v4-flash"
-    "CLAUDE_CODE_SUBAGENT_MODEL"       = "deepseek-v4-flash"
-    "CLAUDE_CODE_EFFORT_LEVEL"         = "max"
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL"    = "deepseek-v4-flash[1m]"
+    "CLAUDE_CODE_SUBAGENT_MODEL"       = "deepseek-v4-flash[1m]"
+    "CLAUDE_CODE_EFFORT_LEVEL"         = "high" 
+                                        # 可选值：low, medium, high, xhigh, max 
 }
+<# 
+effort level 推荐 （CC命令 /effort 可调节）：
+    复杂系统设计、大量重构、调试棘手bug	          xhigh / max
+    日常编码、CRUD 开发、中等难度任务	        high 
+    快速脚本、简单增删改查、学习示例	       medium 
+    最求极致速度、最低成本	                low
+#>
 
 try {
     foreach ($var in $envSettings.Keys) {

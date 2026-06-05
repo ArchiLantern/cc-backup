@@ -50,6 +50,8 @@ cc-backup/
 │   └── cc-auto-install/                       # 全新安装套件
 │       ├── cc-install-by-Admin.bat           # ★ 入口：右键管理员运行
 │       ├── cc-install.ps1                   # 一键安装 CC + 配置 DeepSeek
+│       ├── DS 接入 Claude Code - DeepSeek API Docs.url    # 官方文档快捷方式
+│       ├── DeepSeek V4 官方配置与实际个人取舍.url            # 配置参考快捷方式
 │       ├── node-install-by-Admin.bat        # ★ 入口：右键管理员运行
 │       ├── node-install.ps1                 # Node.js 安装/升级
 │       ├── npm-mirror-switcher-by-Admin.bat # ★ 入口：右键管理员运行
@@ -82,8 +84,9 @@ cc-backup/
    - 将 Claude Code 添加到系统 PATH
    - 配置 `~/.claude/settings.json` 禁用自动更新
    - 设置用户级环境变量禁用遥测
-   - 配置 DeepSeek V4 作为后端模型：设置 `ANTHROPIC_BASE_URL`、`ANTHROPIC_MODEL`
+   - 配置 DeepSeek V4 作为后端模型：设置 `ANTHROPIC_BASE_URL`、`ANTHROPIC_DEFAULT_OPUS/SONNET/HAIKU_MODEL` 及 `CLAUDE_CODE_SUBAGENT_MODEL`
    - 提示输入 DeepSeek API Key 并保存
+   - 附带 DeepSeek 官方配置与接入文档快捷方式
    - 绕过 Claude Code 区域限制
 
 ---
@@ -162,7 +165,9 @@ Node.js 版本低于 v18，或想通过 NVM 管理多版本：
 | 文件 | 说明 |
 |------|------|
 | `cc-install-by-Admin.bat` | Claude Code 一键安装入口 |
-| `cc-install.ps1` | 6 步完成：检测 Node → 安装 CC → 配置 PATH → 配置 settings.json → 设置环境变量 → 配置 DeepSeek 后端并绕过区域限制 |
+| `cc-install.ps1` | 6 步完成：检测 Node → 安装 CC → 配置 PATH → 配置 settings.json → 设置环境变量 → 配置 DeepSeek 后端（不锁定主模型，子智能体使用 flash）并绕过区域限制 |
+| `DS 接入 Claude Code - DeepSeek API Docs.url` | DeepSeek 官方接入文档快捷方式，手动安装时参考 |
+| `DeepSeek V4 官方配置与实际个人取舍.url` | DeepSeek V4 模型配置指南与个人调优说明 |
 | `node-install-by-Admin.bat` | Node.js 安装入口 |
 | `node-install.ps1` | 检测 Node 版本，通过 NVM 或 MSI 安装 v18/v22，安装后自动切换国内镜像 |
 | `npm-mirror-switcher-by-Admin.bat` | npm 镜像切换入口 |
@@ -204,8 +209,18 @@ Claude Code CLI 的配置文件（Windows 路径：`C:\Users\<用户名>\.claude
 | 变量名 | 值 | 说明 |
 |--------|-----|------|
 | `ANTHROPIC_BASE_URL` | `https://api.deepseek.com/anthropic` | DeepSeek API 端点 |
-| `ANTHROPIC_MODEL` | `deepseek-v4-flash` | 默认使用的模型 |
+| `ANTHROPIC_DEFAULT_OPUS_MODEL` | `deepseek-v4-pro[1m]` | Opus 级主力模型（高性能） |
+| `ANTHROPIC_DEFAULT_SONNET_MODEL` | `deepseek-v4-pro[1m]` | Sonnet 级主力模型（同上） |
+| `ANTHROPIC_DEFAULT_HAIKU_MODEL` | `deepseek-v4-flash[1m]` | Haiku 级轻量模型（子智能体等快速任务） |
+| `CLAUDE_CODE_SUBAGENT_MODEL` | `deepseek-v4-flash[1m]` | 子智能体专用模型（后台分析任务） |
+| `CLAUDE_CODE_EFFORT_LEVEL` | `high` | 思考预算级别（可用 `/effort` 动态调整） |
 | `ANTHROPIC_AUTH_TOKEN` | `sk-xxxxxx` | DeepSeek API Key（安装时交互输入） |
+
+> **关于 `[1m]` 后缀**：告诉 Claude Code 该模型支持 1M 上下文窗口，避免错误识别上下文容量，同时可开启 DeepSeek 侧的某些性能优化。
+>
+> **关于 Effort Level**：`high` 为日常编码推荐值。复杂系统设计/调试可选 `xhigh`/`max`；简单脚本可选 `medium`/`low`。可在 CC 中用命令 `/effort` 随时切换。
+>
+> **关于 `ANTHROPIC_MODEL`**：该变量**不再设置**，避免锁定默认模型。在 CC 中使用 `/model` 切换模型后自动成为默认模型，更符合预期。
 
 ---
 
