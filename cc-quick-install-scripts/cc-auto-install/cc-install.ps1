@@ -11,6 +11,7 @@
 chcp 65001 > $null
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
+Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host "    Claude Code Installation Script" -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
@@ -35,7 +36,7 @@ if (-not $isAdmin) {
     exit 1
 }
 
-Write-Host "Administrator privileges confirmed." -ForegroundColor Green
+Write-Host "✓ Administrator privileges confirmed." -ForegroundColor Green
 Write-Host ""
 
 # ============================================
@@ -76,7 +77,7 @@ catch {
     $nodeMajorVersion = 18
 }
 
-Write-Host "Node.js version detected: $nodeVersion" -ForegroundColor Green
+Write-Host "✓ Node.js version detected: $nodeVersion" -ForegroundColor Green
 Write-Host ""
 
 # ============================================
@@ -111,7 +112,7 @@ if ($LASTEXITCODE -ne 0 -and $LASTEXITCODE -ne $null) {
     exit 1
 }
 
-Write-Host "Claude Code installed successfully." -ForegroundColor Green
+Write-Host "✓ Claude Code installed successfully." -ForegroundColor Green
 Write-Host ""
 
 # ============================================
@@ -123,7 +124,7 @@ try {
     $npmPrefix = npm prefix -g 2>&1
     $npmPrefix = $npmPrefix.ToString().Trim()
     $npmBinPath = Join-Path $npmPrefix "node_modules\.bin"
-    
+
     if (-not (Test-Path $npmBinPath)) {
         throw "Path not found"
     }
@@ -133,6 +134,7 @@ catch {
     Write-Host "Trying alternative paths..." -ForegroundColor Yellow
     
     $possiblePaths = @(
+        "$env:Node_Global",
         "$env:AppData\npm\node_modules\.bin",
         "$env:ProgramFiles\nodejs\node_modules\.bin",
         "$env:USERPROFILE\AppData\Roaming\npm\node_modules\.bin"
@@ -157,18 +159,18 @@ catch {
 }
 
 if ($npmBinPath -and (Test-Path $npmBinPath)) {
-    Write-Host "Claude Code path detected: $npmBinPath" -ForegroundColor Cyan
+    Write-Host "✓ Claude Code path detected: $npmBinPath" -ForegroundColor Cyan
     
     try {
         $currentPath = [Environment]::GetEnvironmentVariable("Path", "Machine")
         $pathToAdd = $npmBinPath
         
         if ($currentPath -split ';' -contains $pathToAdd) {
-            Write-Host "Claude Code path already exists in system PATH." -ForegroundColor Green
+            Write-Host "✓ Claude Code path already exists in system PATH." -ForegroundColor Green
         }
         else {
             [Environment]::SetEnvironmentVariable("Path", "$currentPath;$pathToAdd", "Machine")
-            Write-Host "Claude Code added to system PATH." -ForegroundColor Green
+            Write-Host "✓ Claude Code added to system PATH." -ForegroundColor Green
             Write-Host "Note: You need to restart your terminal for changes to take effect." -ForegroundColor Yellow
         }
     }
@@ -235,7 +237,7 @@ foreach ($var in $envVars.Keys) {
     [Environment]::SetEnvironmentVariable($var, $envVars[$var], "Process")
     Write-Host "✓ 已设置 $var = $($envVars[$var])" -ForegroundColor Green
 }
-
+Write-Host ""
 
 
 # ============================================
@@ -243,6 +245,8 @@ foreach ($var in $envVars.Keys) {
 # ============================================
 Write-Host "[4/6] Configuring Claude Code to bypass region restrictions..." -ForegroundColor Yellow
 
+# 注意：这个 "hasCompletedOnboarding": true 配置
+# 默认是在用户目录里的 .claude.json 文件，不是 .claude/settings.json
 $claudeConfigPath = Join-Path $env:USERPROFILE ".claude.json"
 
 if (-not (Test-Path $claudeConfigPath)) {
@@ -251,7 +255,7 @@ if (-not (Test-Path $claudeConfigPath)) {
         apiKey                 = $null
     } | ConvertTo-Json
     Set-Content -Path $claudeConfigPath -Value $initialConfig -Encoding UTF8
-    Write-Host "Claude Code configuration file created." -ForegroundColor Green
+    Write-Host "✓ Claude Code configuration file created." -ForegroundColor Green
 }
 else {
     try {
@@ -261,7 +265,7 @@ else {
         if ($config -is [PSCustomObject]) {
             $config | Add-Member -NotePropertyName "hasCompletedOnboarding" -NotePropertyValue $true -Force
             $config | ConvertTo-Json | Set-Content $claudeConfigPath -Encoding UTF8
-            Write-Host "Claude Code configuration updated, region restrictions bypassed." -ForegroundColor Green
+            Write-Host "✓ Claude Code configuration updated, region restrictions bypassed." -ForegroundColor Green
         }
         else {
             throw "Invalid config format"
@@ -273,7 +277,7 @@ else {
             hasCompletedOnboarding = $true
         } | ConvertTo-Json
         Set-Content -Path $claudeConfigPath -Value $config -Encoding UTF8
-        Write-Host "Configuration file rebuilt successfully." -ForegroundColor Green
+        Write-Host "✓ Configuration file rebuilt successfully." -ForegroundColor Green
     }
 }
 
@@ -283,50 +287,82 @@ Write-Host ""
 # Step 5: Configure LLM Environment Variables (DeepSeek)
 # ============================================
 Write-Host "[5/6] Configuring DeepSeek V4 environment variables..." -ForegroundColor Yellow
+Write-Host "DeepSeek官方推荐的Claude Code环境变量配置参考：https://api-docs.deepseek.com/zh-cn/guides/agent_integrations/claude_code" -ForegroundColor Yellow
+Write-Host ""
+
+# 检查是否已设置 ANTHROPIC_AUTH_TOKEN
+$existingApiKey = [Environment]::GetEnvironmentVariable("ANTHROPIC_AUTH_TOKEN", "User")
+
+if (-not [string]::IsNullOrWhiteSpace($existingApiKey)) {
+    $maskedKey = $existingApiKey.Substring(0, [Math]::Min(12, $existingApiKey.Length)) + "****"
+    Write-Host "检测到已存在的 ANTHROPIC_AUTH_TOKEN: $maskedKey" -ForegroundColor Cyan
+    $confirmKey = Read-Host "是否使用此 API Key？(y/n, 默认 y)"
+    if ($confirmKey -eq 'n') {
+        $existingApiKey = $null
+    }
+}
+
+if ([string]::IsNullOrWhiteSpace($existingApiKey)) {
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "   Please prepare your DeepSeek API Key" -ForegroundColor Cyan
+    Write-Host "   Get it from: https://platform.deepseek.com/api_keys" -ForegroundColor Cyan
+    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host ""
+
+    $existingApiKey = Read-Host "Enter your DeepSeek API Key (format: sk-xxxxxx)"
+
+    if ([string]::IsNullOrWhiteSpace($existingApiKey)) {
+        Write-Host "ERROR: API Key cannot be empty" -ForegroundColor Red
+        Write-Host "You can manually set the environment variable ANTHROPIC_AUTH_TOKEN later." -ForegroundColor Yellow
+    }
+    elseif ($existingApiKey -notmatch '^sk-') {
+        Write-Host "Warning: API Key format may be incorrect. DeepSeek API Keys typically start with 'sk-'" -ForegroundColor Yellow
+        $confirm = Read-Host "Continue anyway? (y/n)"
+        if ($confirm -ne 'y') {
+            Write-Host "Please re-run the script or configure manually." -ForegroundColor Yellow
+            $existingApiKey = $null
+        }
+    }
+}
+
+$apiKey = $existingApiKey
+
+# 设置官方推荐的环境变量（DeepSeek Claude Code）
+# https://api-docs.deepseek.com/zh-cn/guides/agent_integrations/claude_code
+$envSettings = @{
+    "ANTHROPIC_BASE_URL"               = "https://api.deepseek.com/anthropic"
+    "ANTHROPIC_MODEL"                  = "deepseek-v4-pro[1m]"
+    "ANTHROPIC_DEFAULT_OPUS_MODEL"     = "deepseek-v4-pro[1m]"
+    "ANTHROPIC_DEFAULT_SONNET_MODEL"   = "deepseek-v4-pro[1m]"
+    "ANTHROPIC_DEFAULT_HAIKU_MODEL"    = "deepseek-v4-flash"
+    "CLAUDE_CODE_SUBAGENT_MODEL"       = "deepseek-v4-flash"
+    "CLAUDE_CODE_EFFORT_LEVEL"         = "max"
+}
 
 try {
-    [Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "https://api.deepseek.com/anthropic", "User")
-    [Environment]::SetEnvironmentVariable("ANTHROPIC_MODEL", "deepseek-v4-flash", "User")
-    Write-Host "ANTHROPIC_BASE_URL and ANTHROPIC_MODEL have been set." -ForegroundColor Green
+    foreach ($var in $envSettings.Keys) {
+        [Environment]::SetEnvironmentVariable($var, $envSettings[$var], "User")
+        Write-Host "✓ 已设置 $var = $($envSettings[$var])" -ForegroundColor Green
+    }
+
+    if ($apiKey) {
+        [Environment]::SetEnvironmentVariable("ANTHROPIC_AUTH_TOKEN", $apiKey, "User")
+        Write-Host "✓ 已设置 ANTHROPIC_AUTH_TOKEN = $($apiKey.Substring(0, [Math]::Min(12, $apiKey.Length)))**" -ForegroundColor Green
+    }
+
+    Write-Host "`nAll environment variables have been set." -ForegroundColor Green
 }
 catch {
     Write-Host "Warning: Unable to set environment variables: $_" -ForegroundColor Yellow
     Write-Host "Please manually set the following user environment variables:" -ForegroundColor Cyan
     Write-Host "  ANTHROPIC_BASE_URL = https://api.deepseek.com/anthropic" -ForegroundColor Gray
-    Write-Host "  ANTHROPIC_MODEL = deepseek-v4-flash" -ForegroundColor Gray
-}
-
-Write-Host ""
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "   Please prepare your DeepSeek API Key" -ForegroundColor Cyan
-Write-Host "   Get it from: https://platform.deepseek.com/api_keys" -ForegroundColor Cyan
-Write-Host "========================================" -ForegroundColor Cyan
-Write-Host ""
-
-$apiKey = Read-Host "Enter your DeepSeek API Key (format: sk-xxxxxx)"
-
-if ([string]::IsNullOrWhiteSpace($apiKey)) {
-    Write-Host "ERROR: API Key cannot be empty" -ForegroundColor Red
-    Write-Host "You can manually set the environment variable ANTHROPIC_AUTH_TOKEN later." -ForegroundColor Yellow
-}
-elseif ($apiKey -notmatch '^sk-') {
-    Write-Host "Warning: API Key format may be incorrect. DeepSeek API Keys typically start with 'sk-'" -ForegroundColor Yellow
-    $confirm = Read-Host "Continue anyway? (y/n)"
-    if ($confirm -ne 'y') {
-        Write-Host "Please re-run the script or configure manually." -ForegroundColor Yellow
-        $apiKey = $null
-    }
-}
-
-if ($apiKey) {
-    try {
-        [Environment]::SetEnvironmentVariable("ANTHROPIC_AUTH_TOKEN", $apiKey, "User")
-        Write-Host "DeepSeek API Key saved to user environment variables." -ForegroundColor Green
-    }
-    catch {
-        Write-Host "Warning: Unable to save API Key: $_" -ForegroundColor Yellow
-        Write-Host "Please manually set the user environment variable: ANTHROPIC_AUTH_TOKEN" -ForegroundColor Cyan
-    }
+    Write-Host "  ANTHROPIC_AUTH_TOKEN = <your DeepSeek API Key>" -ForegroundColor Gray
+    Write-Host "  ANTHROPIC_MODEL = deepseek-v4-pro[1m]" -ForegroundColor Gray
+    Write-Host "  ANTHROPIC_DEFAULT_OPUS_MODEL = deepseek-v4-pro[1m]" -ForegroundColor Gray
+    Write-Host "  ANTHROPIC_DEFAULT_SONNET_MODEL = deepseek-v4-pro[1m]" -ForegroundColor Gray
+    Write-Host "  ANTHROPIC_DEFAULT_HAIKU_MODEL = deepseek-v4-flash" -ForegroundColor Gray
+    Write-Host "  CLAUDE_CODE_SUBAGENT_MODEL = deepseek-v4-flash" -ForegroundColor Gray
+    Write-Host "  CLAUDE_CODE_EFFORT_LEVEL = max" -ForegroundColor Gray
 }
 
 Write-Host ""
@@ -347,7 +383,7 @@ Write-Host "  - Node.js v$nodeMajorVersion detected"
 Write-Host "  - Claude Code installed"
 Write-Host "  - System PATH configured"
 Write-Host "  - Region restrictions bypassed"
-Write-Host "  - DeepSeek V4 Flash configured" -ForegroundColor Green
+Write-Host "  - DeepSeek V4 configured (main: deepseek-v4-pro / subagent: deepseek-v4-flash)" -ForegroundColor Green
 if ($apiKey) {
     Write-Host "  - DeepSeek API Key saved" -ForegroundColor Green
 }
@@ -371,8 +407,7 @@ Write-Host ""
 Write-Host "Important Notes:" -ForegroundColor Yellow
 Write-Host "  - If 'claude' command is not found, restart your terminal for PATH changes to take effect" -ForegroundColor Gray
 Write-Host "  - To change API Key, edit the ANTHROPIC_AUTH_TOKEN user environment variable" -ForegroundColor Gray
-Write-Host "  - To switch models, modify the ANTHROPIC_MODEL environment variable" -ForegroundColor Gray
-Write-Host "    Examples: deepseek-v4-flash / deepseek-v4-pro" -ForegroundColor Gray
+Write-Host "  - To switch models, modify ANTHROPIC_MODEL (main) or CLAUDE_CODE_SUBAGENT_MODEL (subagent)" -ForegroundColor Gray
 Write-Host ""
 
 Write-Host "Thank you! Happy coding! " -ForegroundColor Magenta
